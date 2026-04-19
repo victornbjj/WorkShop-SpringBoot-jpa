@@ -28,7 +28,17 @@ public class UserResource {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<User> findById(@PathVariable UUID id) {
+    public ResponseEntity<User> findById(
+            @PathVariable UUID id,
+            @RequestHeader("Authorization") String authHeader) {
+
+        UUID requesterId = extractUserId(authHeader);
+        String requesterRole = jwtService.extractRole(authHeader.substring(7));
+
+        if (!requesterId.equals(id) && !requesterRole.equals("ADMIN")) {
+            return ResponseEntity.status(403).build();
+        }
+
         return ResponseEntity.ok(service.findById(id));
     }
 

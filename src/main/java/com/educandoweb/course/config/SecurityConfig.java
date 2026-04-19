@@ -40,8 +40,9 @@ public class SecurityConfig {
 
 
 
-                        // GET em users é público
-                        .requestMatchers(HttpMethod.GET, "/users/**").permitAll()
+
+                        .requestMatchers(HttpMethod.GET, "/users").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/users/**").authenticated()
 
                         // PUT e DELETE exigem autenticação
                         // a regra "só o próprio user" é verificada no UserResource
