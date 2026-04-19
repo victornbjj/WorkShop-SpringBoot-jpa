@@ -47,7 +47,6 @@ public class UserResource {
 
         UUID requesterId = extractUserId(authHeader);
 
-        // só o próprio user pode deletar a própria conta
         if (!requesterId.equals(id)) {
             return ResponseEntity.status(403).build();
         }
@@ -64,7 +63,7 @@ public class UserResource {
 
         UUID requesterId = extractUserId(authHeader);
 
-        // só o próprio user pode atualizar os próprios dados
+
         if (!requesterId.equals(id)) {
             return ResponseEntity.status(403).build();
         }
@@ -73,7 +72,7 @@ public class UserResource {
         return ResponseEntity.ok(obj);
     }
 
-    // extrai o UUID do token JWT que vem no header
+
     private UUID extractUserId(String authHeader) {
         String token = authHeader.substring(7); // remove "Bearer "
         return jwtService.extractUserId(token);
