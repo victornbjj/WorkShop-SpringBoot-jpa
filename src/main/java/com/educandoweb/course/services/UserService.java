@@ -33,7 +33,6 @@ public class UserService {
     }
 
     public User insert(User obj) {
-        // encoda a senha antes de salvar — nunca salvar texto puro
         obj.setPassword(passwordEncoder.encode(obj.getPassword()));
         return userRepository.save(obj);
     }
