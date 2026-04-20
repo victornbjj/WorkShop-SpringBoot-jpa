@@ -3,7 +3,7 @@ package com.educandoweb.course.resources.exceptions;
 import java.io.Serializable;
 import java.time.Instant;
 
-public class StandardErro implements Serializable {
+public class StandardError implements Serializable {
 
 
     private Instant timestamp;
@@ -13,10 +13,10 @@ public class StandardErro implements Serializable {
     private String path;
 
 
-    public StandardErro(){}
+    public StandardError(){}
 
 
-    public StandardErro(Instant timestamp, Integer status, String error, String message, String path) {
+    public StandardError(Instant timestamp, Integer status, String error, String message, String path) {
         this.timestamp = timestamp;
         this.status = status;
         this.error = error;
@@ -48,7 +48,9 @@ public class StandardErro implements Serializable {
     public void setError(String error) {
         this.error = error;
     }
-
+   
+    public String getMessage() {
+         return message; }
 
     public void setMessage(String message) {
         this.message = message;

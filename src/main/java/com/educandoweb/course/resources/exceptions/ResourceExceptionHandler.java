@@ -1,6 +1,5 @@
 package com.educandoweb.course.resources.exceptions;
 
-
 import com.educandoweb.course.services.exceptions.DataBaseException;
 import com.educandoweb.course.services.exceptions.ResourceNotFoundException;
 
@@ -15,22 +14,32 @@ import java.time.Instant;
 @ControllerAdvice
 public class ResourceExceptionHandler {
 
-
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<StandardErro> resourceNotFound(ResourceNotFoundException e, HttpServletRequest request){
-      String error = "Resource not found";
-      HttpStatus status = HttpStatus.NOT_FOUND;
-      StandardErro err = new StandardErro(Instant.now(), status.value(), error, e.getMessage(),request.getRequestURI());
+    public ResponseEntity<StandardError> resourceNotFound(ResourceNotFoundException e, HttpServletRequest request) {
+        String error = "Resource not found";
+        HttpStatus status = HttpStatus.NOT_FOUND;
+        StandardError err = new StandardError(Instant.now(), status.value(), error, e.getMessage(),
+                request.getRequestURI());
 
-      return ResponseEntity.status(status).body(err);
+        return ResponseEntity.status(status).body(err);
     }
+
     @ExceptionHandler(DataBaseException.class)
-    public ResponseEntity<StandardErro> dataBas(DataBaseException e, HttpServletRequest request){
+    public ResponseEntity<StandardError> dataBas(DataBaseException e, HttpServletRequest request) {
         String error = "DataBase Error";
         HttpStatus status = HttpStatus.BAD_REQUEST;
-        StandardErro err = new StandardErro(Instant.now(), status.value(), error, e.getMessage(),request.getRequestURI());
+        StandardError err = new StandardError(Instant.now(), status.value(), error, e.getMessage(),
+                request.getRequestURI());
 
         return ResponseEntity.status(status).body(err);
 
+    }
+
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<StandardError> userNotFound(
+            UserNotFoundException e, HttpServletRequest request) {
+        StandardError err = new StandardError(
+                Instant.now(), 404, "User not found", e.getMessage(), request.getRequestURI());
+        return ResponseEntity.status(404).body(err);
     }
 }
