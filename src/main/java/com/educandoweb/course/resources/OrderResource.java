@@ -34,7 +34,7 @@ public class OrderResource {
         Order obj = service.findById(id);
         String email = jwtService.extractEmail(token.replace("Bearer ", ""));
 
-        boolean isAdmin = obj.getClient().getRole().equals("ADMIN");
+        boolean isAdmin = obj.getClient().getRole().equals("ROLE_ADMIN");
         boolean isOwner = obj.getClient().getEmail().equals(email);
 
         if (!isOwner && !isAdmin) {

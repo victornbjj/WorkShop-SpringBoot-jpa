@@ -2,6 +2,7 @@ package com.educandoweb.course.resources.exceptions;
 
 import java.io.Serializable;
 import java.time.Instant;
+import java.util.Collection;
 
 public class StandardErro implements Serializable {
 
@@ -59,9 +60,8 @@ public class StandardErro implements Serializable {
     }
 
     public void setPath(String path) {
-        this.path = path;
-    }
 
+    }
 
 
 }
