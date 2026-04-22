@@ -1,55 +1,255 @@
-# Course API
+# 🛒 WorkShop SpringBoot JPA
 
-API REST de e-commerce desenvolvida com **Java 21** e **Spring Boot 3.4.4**, com autenticação JWT, controle de acesso por roles, dois perfis de ambiente (H2 e PostgreSQL) e documentação via Swagger UI.
-
----
-
-## Tecnologias
-
-| Tecnologia | Versão | Finalidade |
-|---|---|---|
-| Java | 21 | Linguagem principal |
-| Spring Boot | 3.4.4 | Framework principal |
-| Spring Security | (via Boot) | Autenticação e autorização |
-| Spring Data JPA | (via Boot) | Persistência de dados |
-| Hibernate | 6.6.x | ORM |
-| JJWT | 0.12.6 | Geração e validação de tokens JWT |
-| H2 Database | (via Boot) | Banco em memória para testes locais |
-| PostgreSQL | 13+ | Banco relacional para produção |
-| springdoc-openapi | 2.8.6 | Documentação Swagger UI |
-| Maven | 3.x | Gerenciamento de dependências e build |
+API REST completa para gerenciamento de pedidos, construída com Spring Boot 3, Spring Security e autenticação JWT. O projeto cobre desde o modelo de domínio até autorização baseada em roles, com suporte a dois perfis de banco de dados.
 
 ---
 
-## Entidades do domínio
+## 🚀 Tecnologias
+
+![Java](https://img.shields.io/badge/Java-21-orange?style=flat-square&logo=openjdk)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.4.4-green?style=flat-square&logo=springboot)
+![Spring Security](https://img.shields.io/badge/Spring_Security-JWT-green?style=flat-square&logo=springsecurity)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-prod-blue?style=flat-square&logo=postgresql)
+![H2](https://img.shields.io/badge/H2-test-lightgrey?style=flat-square)
+![Swagger](https://img.shields.io/badge/Swagger-OpenAPI_3-85EA2D?style=flat-square&logo=swagger)
+![Maven](https://img.shields.io/badge/Maven-3.8+-red?style=flat-square&logo=apachemaven)
+
+---
+
+## 📐 Modelo de Domínio
 
 ```
 User ──< Order ──< OrderItem >── Product >── Category
-                   │
-                   └── Payment
+              └── Payment
 ```
 
-- **User** — usuário com UUID, email único, senha BCrypt e role (USER/ADMIN)
-- **Order** — pedido vinculado a um cliente com status e momento
-- **OrderItem** — item de pedido com quantidade e preço
-- **Product** — produto com categorias (N:N)
-- **Category** — categoria de produto
-- **Payment** — pagamento vinculado a um pedido
+- Um `User` pode ter vários `Order`
+- Cada `Order` possui vários `OrderItem`
+- Cada `OrderItem` referencia um `Product`
+- Um `Product` pode pertencer a várias `Category`
+- Um `Order` pode ter um `Payment`
 
 ---
 
-## Estrutura do projeto
+## 🔐 Segurança
+
+A API utiliza **JWT (JSON Web Token)** via `jjwt 0.12.6` com autenticação stateless.
+
+O token carrega os claims: `email`, `userId` e `role`.
+
+### Roles disponíveis
+
+| Role | Permissões |
+|------|-----------|
+| `USER` | Ver/editar/deletar apenas os próprios dados e pedidos |
+| `ADMIN` | Acesso total — listar todos os usuários e pedidos |
+
+### Regras por endpoint
+
+| Método | Endpoint | Regra |
+|--------|----------|-------|
+| POST | `/auth/login` | Público |
+| POST | `/users` | Público |
+| GET | `/users` | Somente `ADMIN` |
+| GET | `/users/{id}` | Próprio usuário ou `ADMIN` |
+| PUT | `/users/{id}` | Somente o próprio usuário |
+| DELETE | `/users/{id}` | Somente o próprio usuário |
+| GET | `/orders` | Autenticado — `ADMIN` vê todos, `USER` vê só os seus |
+| GET | `/orders/{id}` | Dono do pedido ou `ADMIN` |
+| GET | `/products/**` | Autenticado |
+| GET | `/categories/**` | Autenticado |
+
+---
+
+## 📦 Endpoints
+
+### 🔑 Auth
+
+#### POST `/auth/login`
+```json
+{
+  "email": "maria@gmail.com",
+  "password": "123456"
+}
+```
+**Resposta 200 OK:**
+```json
+{
+  "token": "eyJhbGciOiJIUzUxMiJ9...",
+  "type": "Bearer",
+  "userId": "b84daace-2fcd-4037-b0e1-b0cacd9cbe41",
+  "email": "maria@gmail.com",
+  "role": "USER"
+}
+```
+
+---
+
+### 👤 Users
+
+#### POST `/users` — Criar usuário
+```json
+{
+  "name": "João Silva",
+  "email": "joao@gmail.com",
+  "phone": "999999999",
+  "password": "123456"
+}
+```
+
+#### GET `/users` — Listar todos `(ADMIN)`
+#### GET `/users/{id}` — Buscar por ID
+#### PUT `/users/{id}` — Atualizar
+```json
+{
+  "name": "João Atualizado",
+  "email": "joao@gmail.com",
+  "phone": "988888888",
+  "password": "novaSenha"
+}
+```
+#### DELETE `/users/{id}` — Deletar
+
+> Todas as rotas de `/users` (exceto POST) exigem header `Authorization: Bearer {token}`
+
+---
+
+### 📦 Orders
+
+#### GET `/orders` — Listar pedidos
+- `ADMIN`: retorna todos os pedidos
+- `USER`: retorna apenas os pedidos do usuário autenticado
+
+#### GET `/orders/{id}` — Buscar pedido por ID
+- Retorna `403` se o pedido não pertencer ao usuário autenticado (exceto `ADMIN`)
+
+---
+
+### 🛍️ Products
+
+| Método | Endpoint | Descrição |
+|--------|----------|-----------|
+| GET | `/products` | Listar todos |
+| GET | `/products/{id}` | Buscar por ID |
+
+---
+
+### 🗂️ Categories
+
+| Método | Endpoint | Descrição |
+|--------|----------|-----------|
+| GET | `/categories` | Listar todas |
+| GET | `/categories/{id}` | Buscar por ID |
+
+---
+
+## ⚙️ Como executar
+
+### Pré-requisitos
+
+- Java 21+
+- Maven 3.8+
+
+### Perfil de teste (H2 in-memory)
+
+```bash
+# Clone o repositório
+git clone https://github.com/victornbjj/WorkShop-SpringBoot-jpa.git
+cd WorkShop-SpringBoot-jpa
+
+# Configure as variáveis de ambiente
+export JWT_SECRET=minha-chave-secreta-com-minimo-32-caracteres
+
+# Execute
+./mvnw spring-boot:run
+```
+
+A aplicação sobe na porta `8080` com banco H2 in-memory e dados de teste já inseridos automaticamente.
+
+### Perfil de produção (PostgreSQL)
+
+Configure as variáveis de ambiente:
+
+```bash
+export DATABASE_URL=jdbc:postgresql://localhost:5432/workshop
+export DB_USERNAME=postgres
+export DB_PASSWORD=sua_senha
+export JWT_SECRET=minha-chave-secreta-com-minimo-32-caracteres
+export JWT_EXPIRATION=86400000
+export PORT=8080
+```
+
+---
+
+## 🗄️ Dados de Teste (perfil `test`)
+
+Ao iniciar com `spring.profiles.active=test`, os seguintes dados são inseridos automaticamente:
+
+### Usuários
+| Nome | Email | Senha | Role |
+|------|-------|-------|------|
+| Maria Brown | maria@gmail.com | 123456 | USER |
+| Alex Green | alex@gmail.com | 123456 | USER |
+
+> Para promover um usuário a ADMIN, acesse o H2 Console e execute:
+> ```sql
+> UPDATE TB_USER SET ROLE = 'ADMIN' WHERE EMAIL = 'maria@gmail.com';
+> ```
+
+### Pedidos
+| ID | Status | Cliente |
+|----|--------|---------|
+| 1 | PAID | Maria |
+| 2 | WAITING_PAYMENT | Alex |
+| 3 | WAITING_PAYMENT | Maria |
+
+### Produtos
+| ID | Nome | Preço |
+|----|------|-------|
+| 1 | The Lord of the Rings | R$ 90,50 |
+| 2 | Smart TV | R$ 2.190,00 |
+| 3 | Macbook Pro | R$ 1.250,00 |
+| 4 | PC Gamer | R$ 1.200,00 |
+| 5 | Rails for Dummies | R$ 100,99 |
+
+---
+
+## 📋 H2 Console (perfil test)
+
+Acesse `http://localhost:8080/h2-console` com:
+
+| Campo | Valor |
+|-------|-------|
+| JDBC URL | `jdbc:h2:mem:testdb` |
+| Username | `sa` |
+| Password | *(vazio)* |
+
+---
+
+## 📖 Documentação Swagger
+
+Com a aplicação rodando, acesse:
+
+```
+http://localhost:8080/swagger-ui.html
+```
+
+A documentação já está configurada com suporte a **JWT Bearer Auth** — clique em **Authorize** e insira o token obtido no login.
+
+---
+
+## 🏗️ Estrutura do Projeto
 
 ```
 src/main/java/com/educandoweb/course/
 ├── config/
-│   ├── PasswordEncoderConfig.java   # Bean do BCryptPasswordEncoder
-│   ├── SecurityConfig.java          # Regras de autorização + JwtFilter
-│   ├── SwaggerConfig.java           # OpenAPI + bearerAuth
-│   └── TestConfig.java              # Seed de dados para perfil test
+│   ├── SecurityConfig.java       # Configuração do Spring Security
+│   ├── SwaggerConfig.java        # Configuração OpenAPI/Swagger
+│   ├── PasswordEncoderConfig.java
+│   └── TestConfig.java           # Seed de dados (perfil test)
 ├── dto/
-│   ├── LoginRequest.java            # { email, password }
-│   └── LoginResponse.java           # { token, id, email, role }
+│   ├── LoginRequest.java
+│   └── LoginResponse.java
 ├── entities/
 │   ├── User.java
 │   ├── Order.java
@@ -57,11 +257,10 @@ src/main/java/com/educandoweb/course/
 │   ├── Product.java
 │   ├── Category.java
 │   ├── Payment.java
-│   ├── enums/OrderStatus.java
-│   └── pk/OrderItemPK.java
-├── repositories/                    # Interfaces JpaRepository
-├── resources/                       # Controllers REST
-│   ├── AuthResource.java            # POST /auth/login
+│   └── enums/OrderStatus.java
+├── repositories/
+├── resources/                    # Controllers REST
+│   ├── AuthResource.java
 │   ├── UserResource.java
 │   ├── OrderResource.java
 │   ├── ProductResource.java
@@ -70,271 +269,31 @@ src/main/java/com/educandoweb/course/
 │       ├── ResourceExceptionHandler.java
 │       └── StandardErro.java
 ├── security/
-│   ├── JwtService.java              # Gera e valida tokens JWT
-│   ├── JwtFilter.java               # Intercepta requisições e injeta autenticação
-│   └── UserDetailsServiceImpl.java  # Carrega usuário para o Spring Security
-└── services/                        # Regras de negócio
+│   ├── JwtService.java           # Geração e validação de tokens
+│   ├── JwtFilter.java            # Filtro de autenticação
+│   └── UserDetailsServiceImpl.java
+└── services/
+    ├── UserService.java
+    ├── OrderService.java
+    ├── ProductService.java
+    ├── CategoryService.java
+    └── exceptions/
 ```
 
 ---
 
-## Perfis de ambiente
+## 🔄 Status dos OrderStatus
 
-O projeto possui dois perfis configurados.
-
-### test (padrão local)
-
-Banco H2 em memória. Dados populados automaticamente pelo `TestConfig` a cada inicialização.
-
-Ativo por padrão em `application.properties`:
-```properties
-spring.profiles.active=test
-```
-
-Acesse o console H2 em: `http://localhost:8080/h2-console`
-- JDBC URL: `jdbc:h2:mem:testdb`
-- Username: `sa`
-- Password: *(vazio)*
-
-### prod
-
-PostgreSQL. Requer as seguintes variáveis de ambiente:
-
-| Variável | Descrição | Exemplo |
-|---|---|---|
-| `DATABASE_URL` | URL JDBC do banco | `jdbc:postgresql://localhost:5432/coursedb` |
-| `DB_USERNAME` | Usuário do banco | `postgres` |
-| `DB_PASSWORD` | Senha do banco | `sua_senha` |
-| `JWT_SECRET` | Chave secreta JWT (mín. 32 chars) | `5b7e9f2a...` |
-| `JWT_EXPIRATION` | Expiração do token em ms | `86400000` (24h, padrão) |
-| `PORT` | Porta do servidor | `8080` (padrão) |
-
-Para ativar localmente:
-1. Crie o banco: `CREATE DATABASE coursedb;`
-2. Configure as variáveis no IntelliJ em **Run → Edit Configurations → Environment variables**
-3. Mude o perfil em `application.properties` para `prod`
+| Status | Descrição |
+|--------|-----------|
+| `WAITING_PAYMENT` | Aguardando pagamento |
+| `PAID` | Pago |
+| `SHIPPED` | Enviado |
+| `DELIVERED` | Entregue |
+| `CANCELED` | Cancelado |
 
 ---
 
-## Segurança
+## 👨‍💻 Autor
 
-### Autenticação
-
-A autenticação é feita via JWT stateless. O token é gerado no login e deve ser enviado no header de todas as requisições protegidas:
-
-```
-Authorization: Bearer <token>
-```
-
-O token contém no payload: `email`, `userId` (UUID) e `role`.
-
-### Roles
-
-| Role | Descrição |
-|---|---|
-| `USER` | Usuário padrão — acesso aos próprios recursos |
-| `ADMIN` | Administrador — acesso total |
-
-### Matriz de autorização
-
-| Método | Rota | Acesso |
-|---|---|---|
-| POST | `/auth/login` | Público |
-| POST | `/users` | Público (cadastro) |
-| GET | `/users` | Somente ADMIN |
-| GET | `/users/{id}` | ADMIN ou o próprio usuário |
-| PUT | `/users/{id}` | Somente o próprio usuário |
-| DELETE | `/users/{id}` | Somente o próprio usuário |
-| GET | `/orders` | Autenticado — USER vê só os próprios, ADMIN vê todos |
-| GET | `/orders/{id}` | ADMIN ou dono do pedido |
-| GET | `/products/**` | Público |
-| GET | `/categories/**` | Público |
-
----
-
-## Endpoints
-
-### Autenticação
-
-#### POST /auth/login
-
-Autentica o usuário e retorna o token JWT.
-
-**Request:**
-```json
-{
-  "email": "maria@gmail.com",
-  "password": "123456"
-}
-```
-
-**Response 200:**
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiJ9...",
-  "id": "b0b389c7-4171-4d60-89f2-3a078071fc69",
-  "email": "maria@gmail.com",
-  "role": "USER"
-}
-```
-
----
-
-### Usuários
-
-#### GET /users
-Lista todos os usuários. **Requer role ADMIN.**
-
-#### GET /users/{id}
-Busca usuário por UUID. **Requer ser o próprio usuário ou ADMIN.**
-
-#### POST /users
-Cadastra novo usuário. **Público.**
-
-**Request:**
-```json
-{
-  "name": "João Silva",
-  "email": "joao@email.com",
-  "phone": "999999999",
-  "password": "minhasenha"
-}
-```
-
-#### PUT /users/{id}
-Atualiza dados do usuário. **Somente o próprio usuário.**
-
-#### DELETE /users/{id}
-Remove o usuário. **Somente o próprio usuário.**
-
----
-
-### Pedidos
-
-#### GET /orders
-Lista pedidos. **USER vê apenas os próprios; ADMIN vê todos.**
-
-#### GET /orders/{id}
-Busca pedido por ID. **ADMIN ou dono do pedido.**
-
----
-
-### Produtos
-
-#### GET /products
-Lista todos os produtos. **Público.**
-
-#### GET /products/{id}
-Busca produto por ID. **Público.**
-
----
-
-### Categorias
-
-#### GET /categories
-Lista todas as categorias. **Público.**
-
-#### GET /categories/{id}
-Busca categoria por ID. **Público.**
-
----
-
-## Como executar localmente
-
-### Pré-requisitos
-
-- Java 21+
-- Maven 3.x
-
-### Perfil test (H2 — recomendado para desenvolvimento)
-
-1. Clone o repositório:
-```bash
-git clone https://github.com/seu-usuario/course.git
-cd course
-```
-
-2. Certifique-se que `application.properties` tem:
-```properties
-spring.profiles.active=test
-```
-
-3. Configure a variável de ambiente `JWT_SECRET` no IntelliJ ou exporte no terminal:
-```bash
-export JWT_SECRET=5b7e9f2a1c4d8e3f6a0b2c5d9e1f4a7b3c6d0e2f5a8b1c4d7e0f3a6b9c2d5e8f
-```
-
-4. Execute:
-```bash
-./mvnw spring-boot:run
-```
-
-A aplicação sobe em `http://localhost:8080`.
-
-### Perfil prod (PostgreSQL)
-
-1. Crie o banco PostgreSQL:
-```sql
-CREATE DATABASE coursedb;
-```
-
-2. Configure as variáveis de ambiente e mude o perfil para `prod`
-
-3. Execute:
-```bash
-./mvnw spring-boot:run
-```
-
----
-
-## Swagger UI
-
-Com a aplicação rodando, acesse a documentação interativa em:
-
-```
-http://localhost:8080/swagger-ui.html
-```
-
-Para testar rotas protegidas:
-1. Faça `POST /auth/login` para obter o token
-2. Clique em **Authorize 🔒** no canto superior direito
-3. Cole o token no campo `bearerAuth` (sem o prefixo `Bearer`)
-4. Clique em **Authorize** e feche o modal
-5. Agora todas as requisições incluem o token automaticamente
-
----
-
-## Dados de teste (perfil test)
-
-O `TestConfig` popula automaticamente os seguintes dados ao subir no perfil `test`:
-
-| Nome | Email | Senha | Role |
-|---|---|---|---|
-| Maria Brown | maria@gmail.com | 123456 | USER |
-| Alex Green | alex@gmail.com | 123456 | USER |
-| Bob Grey | bob@gmail.com | 123456 | USER |
-
----
-
-## Variáveis de ambiente — resumo
-
-| Variável | Obrigatória | Padrão | Descrição |
-|---|---|---|---|
-| `JWT_SECRET` | Sim | — | Chave para assinar tokens JWT |
-| `JWT_EXPIRATION` | Não | `86400000` | Expiração do token em milissegundos |
-| `DATABASE_URL` | Somente no prod | — | URL JDBC do PostgreSQL |
-| `DB_USERNAME` | Somente no prod | — | Usuário do banco |
-| `DB_PASSWORD` | Somente no prod | — | Senha do banco |
-| `PORT` | Não | `8080` | Porta do servidor |
-
----
-
-## Boas práticas implementadas
-
-- Senhas armazenadas com **BCrypt** — nunca em texto puro
-- IDs como **UUID** — resistente a enumeração sequencial
-- JWT **stateless** — sem sessão no servidor
-- Separação de responsabilidades: security, config, resources, services, repositories
-- Variáveis sensíveis via **variáveis de ambiente** — nunca hardcoded no repositório
-- Dois perfis bem definidos: `test` para desenvolvimento e `prod` para produção
-- Ownership check em todas as rotas que manipulam dados de usuários e pedidos
+Desenvolvido por **victornbjj** como parte de um workshop prático de Spring Boot com JPA, Spring Security e JWT.
